@@ -69,14 +69,21 @@ def setWebDriver():
     options.add_argument("--window-size=1280,720")
     options.add_argument("--blink-settings=imagesEnabled=false")
 
-    prefs = {
-        "profile.managed_default_content_settings.images": 2,
-        "profile.managed_default_content_settings.stylesheets": 2,
-        "profile.managed_default_content_settings.fonts": 2,
-    }
-    options.add_experimental_option("prefs", prefs)
+    options.page_load_strategy = 'eager'
 
-    return webdriver.Chrome(options=options)
+    # Use system Chromium if available (Railway/Docker), otherwise let Selenium Manager find Chrome
+    import shutil
+    from selenium.webdriver.chrome.service import Service
+    chromium_bin = shutil.which("chromium") or shutil.which("chromium-browser")
+    chromium_drv = shutil.which("chromedriver")
+    if chromium_bin:
+        options.binary_location = chromium_bin
+    if chromium_drv:
+        drv = webdriver.Chrome(service=Service(chromium_drv), options=options)
+    else:
+        drv = webdriver.Chrome(options=options)
+    drv.set_page_load_timeout(30)
+    return drv
 def deleteChatBotIcon(driver):
             driver.execute_script("""
             let chatWidget = document.querySelector('etiya-chat-widget');
@@ -200,12 +207,8 @@ def main ():
         )
         # Optional: go to another page
         driver.get("https://online.spor.istanbul/uyespor")
-        #print(driver.page_source)
-        #set_zoom(driver)        
 
-        time.sleep(15)
-        
-        element = WebDriverWait(driver, 10).until(
+        element = WebDriverWait(driver, 30).until(
             EC.presence_of_element_located((By.ID, "pageContent_rptListe_lbtnSeansSecim_0"))
         )
 
