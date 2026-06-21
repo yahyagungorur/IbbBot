@@ -84,6 +84,12 @@ def setWebDriver():
         drv = webdriver.Chrome(options=options)
     drv.set_page_load_timeout(30)
     return drv
+def wait_for_cloudflare(driver, timeout=30):
+    """Wait until Cloudflare 'Just a moment...' challenge resolves."""
+    WebDriverWait(driver, timeout).until(
+        lambda d: "just a moment" not in d.title.lower()
+        and d.execute_script('return document.readyState') == 'complete'
+    )
 def deleteChatBotIcon(driver):
             driver.execute_script("""
             let chatWidget = document.querySelector('etiya-chat-widget');
@@ -179,15 +185,13 @@ def main ():
     try :
 
         driver.get("https://online.spor.istanbul/uyegiris")
-        set_zoom(driver)        
+        set_zoom(driver)
 
-        WebDriverWait(driver, 10).until(
-            lambda d: d.execute_script('return document.readyState') == 'complete'
-        )
+        wait_for_cloudflare(driver, timeout=60)
 
         print("Title:", driver.title)
         print("Current URL:", driver.current_url)
-        
+
         # Fill login form - wait for form elements to be present (may be JS-rendered)
         tc_input = WebDriverWait(driver, 20).until(
             EC.presence_of_element_located((By.NAME, "txtTCPasaport"))
@@ -199,17 +203,12 @@ def main ():
         sifre_input.send_keys(os.environ['TC_PASSWORD'])
         sifre_input.send_keys(Keys.RETURN)
 
-        # Wait for the redirect (add explicit waits if needed)
-        driver.implicitly_wait(5)
-
-        # Print the current URL (should be the redirected one)
+        # Wait for Cloudflare challenge and redirect to complete
+        wait_for_cloudflare(driver, timeout=60)
         print("Redirected to:", driver.current_url)
 
-        WebDriverWait(driver, 10).until(
-            lambda d: d.execute_script('return document.readyState') == 'complete'
-        )
-        # Optional: go to another page
         driver.get("https://online.spor.istanbul/uyespor")
+        wait_for_cloudflare(driver, timeout=30)
 
         element = WebDriverWait(driver, 30).until(
             EC.presence_of_element_located((By.ID, "pageContent_rptListe_lbtnSeansSecim_0"))
