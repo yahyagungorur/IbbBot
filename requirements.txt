@@ -3,4 +3,5 @@ telethon
 python-dotenv
 requests
 beautifulsoup4
-selenium-stealth
+undetected-chromedriver
+PyVirtualDisplay

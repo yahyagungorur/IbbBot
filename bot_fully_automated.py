@@ -1,10 +1,10 @@
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
-from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from selenium_stealth import stealth
+import undetected_chromedriver as uc
+from pyvirtualdisplay import Display
 import requests
 from datetime import datetime
 from selenium.common.exceptions import NoSuchElementException, StaleElementReferenceException, TimeoutException
@@ -12,7 +12,6 @@ from bs4 import BeautifulSoup
 import asyncio
 import threading
 import os
-import sys
 import time
 from telethon import TelegramClient, events
 from telethon.sessions import StringSession
@@ -57,41 +56,32 @@ def FilterSession(hour,day,isNight):
             return True
         else :
             return False
+_display = None
+
 def setWebDriver():
-    options = Options()
-    options.add_argument("--headless")
+    global _display
+    import shutil
+
+    _display = Display(visible=0, size=(1280, 720))
+    _display.start()
+
+    options = uc.ChromeOptions()
     options.add_argument("--no-sandbox")
-    options.add_argument("--disable-setuid-sandbox")
     options.add_argument("--disable-dev-shm-usage")
     options.add_argument("--disable-gpu")
-    options.add_argument("--disable-extensions")
-    options.add_argument("--disable-software-rasterizer")
-    options.add_argument("--no-zygote")
     options.add_argument("--window-size=1280,720")
     options.add_argument("--blink-settings=imagesEnabled=false")
-    options.add_argument("--disable-blink-features=AutomationControlled")
 
-    options.page_load_strategy = 'eager'
-
-    import shutil
-    from selenium.webdriver.chrome.service import Service
     chromium_bin = shutil.which("chromium") or shutil.which("chromium-browser")
     chromium_drv = shutil.which("chromedriver")
-    if chromium_bin:
-        options.binary_location = chromium_bin
-    if chromium_drv:
-        drv = webdriver.Chrome(service=Service(chromium_drv), options=options)
-    else:
-        drv = webdriver.Chrome(options=options)
-    drv.set_page_load_timeout(30)
-    stealth(drv,
-        languages=["en-US", "en"],
-        vendor="Google Inc.",
-        platform="Linux x86_64",
-        webgl_vendor="Intel Inc.",
-        renderer="Intel Iris OpenGL Engine",
-        fix_hairline=True,
+
+    drv = uc.Chrome(
+        options=options,
+        browser_executable_path=chromium_bin,
+        driver_executable_path=chromium_drv,
+        headless=False,
     )
+    drv.set_page_load_timeout(30)
     return drv
 def wait_for_cloudflare(driver, timeout=90):
     """Wait until Cloudflare 'Just a moment...' challenge resolves."""
@@ -149,7 +139,7 @@ def handle_approval_checkbox(driver, timeout=2):
 
 searchStringRes = "SMS doğrulama kodu hatalı"
 checkbox_id = ""
-driver = setWebDriver()
+driver = None
 bot_token = os.environ['BOT_TOKEN']
 chat_id = os.environ['CHAT_ID']
 api_id = int(os.environ['API_ID'])
@@ -193,7 +183,9 @@ client_thread = threading.Thread(target=start_telegram, daemon=True)
 client_thread.start()
 time.sleep(3)
 
-def main (): 
+def main ():
+    global driver
+    driver = setWebDriver()
     logger("Bot started...\n")
     try :
 
@@ -387,7 +379,7 @@ def main ():
                                 break
                         elif "tanımlandı" in notify:
                             sendMessages(f"<b>✅ {notify}</b>")
-                            btnSeansSecim.click()
+                            driver.back()
                             break
                         else:
                             sendMessages(f"<b>❌ {notify}</b>")
@@ -402,17 +394,16 @@ def main ():
             driver.refresh()
     except Exception as e:
         if driver:
-            driver.quit()  # Use quit() instead of close() for proper cleanup
+            driver.quit()
         logger(f"Bot stoppped...\nSomething went wrong: {e}\n")
+        raise
 
 
 if __name__ == "__main__":
     while True:
         try:
             main()
-            break  # Exit if no error
+            break  # Exit if main() returned cleanly
         except Exception as e:
-            logger(f"Error: {e}")
-            print("Restarting in 3 seconds...")
-            time.sleep(3)
-            os.execv(sys.executable, ['python'] + sys.argv)
+            logger(f"Restarting in 5 seconds after error: {e}\n")
+            time.sleep(5)
