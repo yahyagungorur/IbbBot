@@ -185,6 +185,9 @@ def main ():
             lambda d: d.execute_script('return document.readyState') == 'complete'
         )
 
+        print("Title:", driver.title)
+        print("Current URL:", driver.current_url)
+        
         # Fill login form - wait for form elements to be present (may be JS-rendered)
         tc_input = WebDriverWait(driver, 20).until(
             EC.presence_of_element_located((By.NAME, "txtTCPasaport"))
