@@ -1,0 +1,5 @@
+selenium>=4.6.0
+telethon
+python-dotenv
+requests
+beautifulsoup4
