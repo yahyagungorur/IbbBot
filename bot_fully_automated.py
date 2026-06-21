@@ -4,6 +4,7 @@ from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
+from selenium_stealth import stealth
 import requests
 from datetime import datetime
 from selenium.common.exceptions import NoSuchElementException, StaleElementReferenceException, TimeoutException
@@ -69,10 +70,6 @@ def setWebDriver():
     options.add_argument("--window-size=1280,720")
     options.add_argument("--blink-settings=imagesEnabled=false")
     options.add_argument("--disable-blink-features=AutomationControlled")
-    options.add_argument(
-        "--user-agent=Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 "
-        "(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
-    )
 
     options.page_load_strategy = 'eager'
 
@@ -87,10 +84,14 @@ def setWebDriver():
     else:
         drv = webdriver.Chrome(options=options)
     drv.set_page_load_timeout(30)
-    # Remove navigator.webdriver flag that Cloudflare detects
-    drv.execute_cdp_cmd("Page.addScriptToEvaluateOnNewDocument", {
-        "source": "Object.defineProperty(navigator, 'webdriver', {get: () => undefined})"
-    })
+    stealth(drv,
+        languages=["en-US", "en"],
+        vendor="Google Inc.",
+        platform="Linux x86_64",
+        webgl_vendor="Intel Inc.",
+        renderer="Intel Iris OpenGL Engine",
+        fix_hairline=True,
+    )
     return drv
 def wait_for_cloudflare(driver, timeout=90):
     """Wait until Cloudflare 'Just a moment...' challenge resolves."""
