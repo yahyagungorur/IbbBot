@@ -68,10 +68,14 @@ def setWebDriver():
     options.add_argument("--no-zygote")
     options.add_argument("--window-size=1280,720")
     options.add_argument("--blink-settings=imagesEnabled=false")
+    options.add_argument("--disable-blink-features=AutomationControlled")
+    options.add_argument(
+        "--user-agent=Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 "
+        "(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
+    )
 
     options.page_load_strategy = 'eager'
 
-    # Use system Chromium if available (Railway/Docker), otherwise let Selenium Manager find Chrome
     import shutil
     from selenium.webdriver.chrome.service import Service
     chromium_bin = shutil.which("chromium") or shutil.which("chromium-browser")
@@ -83,13 +87,21 @@ def setWebDriver():
     else:
         drv = webdriver.Chrome(options=options)
     drv.set_page_load_timeout(30)
+    # Remove navigator.webdriver flag that Cloudflare detects
+    drv.execute_cdp_cmd("Page.addScriptToEvaluateOnNewDocument", {
+        "source": "Object.defineProperty(navigator, 'webdriver', {get: () => undefined})"
+    })
     return drv
-def wait_for_cloudflare(driver, timeout=30):
+def wait_for_cloudflare(driver, timeout=90):
     """Wait until Cloudflare 'Just a moment...' challenge resolves."""
-    WebDriverWait(driver, timeout).until(
-        lambda d: "just a moment" not in d.title.lower()
-        and d.execute_script('return document.readyState') == 'complete'
-    )
+    try:
+        WebDriverWait(driver, timeout).until(
+            lambda d: "just a moment" not in d.title.lower()
+            and d.execute_script('return document.readyState') == 'complete'
+        )
+    except TimeoutException:
+        print(f"Cloudflare wait timed out after {timeout}s. Title: {driver.title}, URL: {driver.current_url}")
+        raise
 def deleteChatBotIcon(driver):
             driver.execute_script("""
             let chatWidget = document.querySelector('etiya-chat-widget');
