@@ -173,10 +173,16 @@ def main ():
             lambda d: d.execute_script('return document.readyState') == 'complete'
         )
 
-        # Fill login form
-        driver.find_element(By.NAME, "txtTCPasaport").send_keys(os.environ['TC_PASSPORT'])
-        driver.find_element(By.NAME, "txtSifre").send_keys(os.environ['TC_PASSWORD'])
-        driver.find_element(By.NAME, "txtSifre").send_keys(Keys.RETURN)
+        # Fill login form - wait for form elements to be present (may be JS-rendered)
+        tc_input = WebDriverWait(driver, 20).until(
+            EC.presence_of_element_located((By.NAME, "txtTCPasaport"))
+        )
+        tc_input.send_keys(os.environ['TC_PASSPORT'])
+        sifre_input = WebDriverWait(driver, 10).until(
+            EC.presence_of_element_located((By.NAME, "txtSifre"))
+        )
+        sifre_input.send_keys(os.environ['TC_PASSWORD'])
+        sifre_input.send_keys(Keys.RETURN)
 
         # Wait for the redirect (add explicit waits if needed)
         driver.implicitly_wait(5)
