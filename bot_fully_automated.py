@@ -58,14 +58,13 @@ def FilterSession(hour,day,isNight):
             return False
 def setWebDriver():
     options = Options()
-    options.add_argument("--headless=old")
+    options.add_argument("--headless")
     options.add_argument("--no-sandbox")
     options.add_argument("--disable-setuid-sandbox")
     options.add_argument("--disable-dev-shm-usage")
     options.add_argument("--disable-gpu")
     options.add_argument("--disable-extensions")
     options.add_argument("--disable-software-rasterizer")
-    options.add_argument("--single-process")
     options.add_argument("--no-zygote")
     options.add_argument("--window-size=1280,720")
     options.add_argument("--blink-settings=imagesEnabled=false")
@@ -81,9 +80,11 @@ def setWebDriver():
 def deleteChatBotIcon(driver):
             driver.execute_script("""
             let chatWidget = document.querySelector('etiya-chat-widget');
-            if (chatWidget) {
-                chatWidget.remove();
-            }
+            if (chatWidget) chatWidget.remove();
+            let cookie = document.getElementById('cookie-notice');
+            if (cookie) cookie.remove();
+            let cookieAlert = document.querySelector('.cookiealert');
+            if (cookieAlert) cookieAlert.remove();
         """)  
 def set_zoom(driver, zoom="10%"):
     driver.execute_script(f"document.body.style.zoom='{zoom}'")
@@ -209,7 +210,14 @@ def main ():
         )
 
         btnSeansSecim = driver.find_element(By.ID, "pageContent_rptListe_lbtnSeansSecim_0")
-        btnSeansSecim.click()
+        # Dismiss cookie banner and any overlays before clicking
+        driver.execute_script("""
+            let cookie = document.getElementById('cookie-notice');
+            if (cookie) cookie.remove();
+            let cookieAlert = document.querySelector('.cookiealert');
+            if (cookieAlert) cookieAlert.remove();
+        """)
+        driver.execute_script("arguments[0].click();", btnSeansSecim)
         #print("Page source snippet:", driver.page_source) 
         print("Title:", driver.title)
         print("Current URL:", driver.current_url)
