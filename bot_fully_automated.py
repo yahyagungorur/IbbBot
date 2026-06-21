@@ -58,12 +58,16 @@ def FilterSession(hour,day,isNight):
             return False
 def setWebDriver():
     options = Options()
-    options.add_argument("--headless=new")
+    options.add_argument("--headless=old")
     options.add_argument("--no-sandbox")
+    options.add_argument("--disable-setuid-sandbox")
     options.add_argument("--disable-dev-shm-usage")
     options.add_argument("--disable-gpu")
     options.add_argument("--disable-extensions")
-    options.add_argument("--window-size=1920,1080")
+    options.add_argument("--disable-software-rasterizer")
+    options.add_argument("--single-process")
+    options.add_argument("--no-zygote")
+    options.add_argument("--window-size=1280,720")
     options.add_argument("--blink-settings=imagesEnabled=false")
 
     prefs = {
